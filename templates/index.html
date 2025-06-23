@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Chat</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background:#99b3ff;
+            background-size: cover;
+        }
+        .chat {
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-width: 500px;
+            margin: 30px auto;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-header {
+            padding: 15px;
+            background-color: #4a90e2;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+
+        .chat-body {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 18px;
+            width: fit-content;
+            max-width: 75%;
+            font-size: 1rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            transition: all 0.3s ease;
+        }
+
+        .chat-message.user {
+            background-color: #4a90e2;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+
+        .chat-message.bot {
+            background-color: #e0e0e0;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+
+        .chat-message:hover {
+            transform: scale(1.05);
+            background-color: #d4eaff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            color: #333;
+        }
+
+        .chat-footer {
+            padding: 15px;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .chat-footer input {
+            flex-grow: 1;
+            margin-right: 10px;
+            border-radius: 20px;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            transition: all 0.3s ease;
+        }
+
+        .chat-footer input:hover {
+            border-color: #4a90e2;
+            box-shadow: 0 0 8px rgba(74, 144, 226, 0.6);
+            transform: scale(1.03);
+        }
+
+
+        .btn-primary {
+            border-radius: 20px;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+
+
+        .btn-primary:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 8px rgba(74, 144, 226, 0.6);
+        }
+        .typing {
+            font-style: italic;
+            color: #888;
+            margin: 5px 0;
+            align-self: flex-start;
+            transition: all 0.3s ease;
+        }
+
+        .typing:hover {
+            color: #333;
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.6);
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat">
+        <div class="chat-header">💬 Gemini AI Chat</div>
+        <div class="chat-body" id="chat-body"></div>
+        <div class="chat-footer">
+            <input type="text" class="form-control" id="message-input" placeholder="Type your message...">
+            <button class="btn btn-primary" id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#send-button').click(sendMessage);
+            $('#message-input').keypress(function(e) {
+                if(e.which == 13) {
+                    sendMessage();
+                }
+            });
+
+            function formatMarkdown(text) {
+                return text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            }
+
+            function sendMessage() {
+                var userMessage = $('#message-input').val().trim();
+                if (userMessage) {
+                    $('#chat-body').append('<div class="chat-message user">' + userMessage + '</div>');
+                    $('#message-input').val("");
+                    $('#chat-body').scrollTop($('#chat-body')[0].scrollHeight);
+
+                    var typingIndicator = $('<div class="typing" id="typing-indicator">Bot is typing...</div>');
+                    $('#chat-body').append(typingIndicator);
+                    $('#chat-body').scrollTop($('#chat-body')[0].scrollHeight);
+
+                    $.ajax({
+                        url: '/chat',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ "message": userMessage }),
+                        success: function (response) {
+                            $('#typing-indicator').remove();
+                            var formattedResponse = formatMarkdown(response.response);
+                            $('#chat-body').append('<div class="chat-message bot">' + formattedResponse + '</div>');
+                            $('#chat-body').scrollTop($('#chat-body')[0].scrollHeight);
+                        },
+                        error: function (xhr, status, error) {
+                            $('#typing-indicator').remove();
+                            console.error("Error: " + error);
+                        }
+                    });
+                }
+            }
+        });
+        function getRelevantEmoji(message) {
+        message = message.toLowerCase();
+
+           if (message.includes('time')) return '⏰';
+           if (message.includes('date')) return '📅';
+           if (message.includes('song') || message.includes('music')) return '🎶';
+           if (message.includes('joke')) return '😂';
+           if (message.includes('hello') || message.includes('hi')) return '👋';
+           if (message.includes('how are you')) return '😊';
+           if (message.includes('weather')) return '☁️';
+           if (message.includes('search') || message.includes('google')) return '🔍';
+           if (message.includes('help')) return '🆘';
+           if (message.includes('thank')) return '🙏';
+           if (message.includes('goodbye') || message.includes('bye')) return '👋';
+           if (message.includes('error') || message.includes('problem')) return '⚠️';
+           if (message.includes('happy')) return '😄';
+           if (message.includes('sad')) return '😢';
+           if (message.includes('news')) return '📰';
+           if (message.includes('chat') || message.includes('talk')) return '💬';
+           if (message.includes('coding') || message.includes('programming')) return '💻';
+           if (message.includes('python') || message.includes('flask')) return '🐍';
+           if (message.includes('ai') || message.includes('bot')) return '🤖';
+
+         return '🤖'; 
+        }
+    </script>
+</body>
+</html>
